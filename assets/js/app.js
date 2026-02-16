@@ -1,12 +1,18 @@
+/**
+ * SENCE Module 4 - Resource Management Logic
+ * Focus: API Integration (Fetch), DOM Manipulation, Events
+ */
+
+// 1. CONFIGURATION & STATE
+// API URL from MockAPI
+const API_URL = 'https://6993a28cfade7a9ec0f3214f.mockapi.io/DGRv1/recursos';
+
+// State now just holds the fetched data
 const appState = {
     resources: [],
-    stats: {
-        hardware: 0,
-        software: 0,
-        totalValue: 0
-    }
 };
 
+// 2. DOM SELECTION
 const DOM = {
     form: document.getElementById('resource-form'),
     inputs: {
@@ -32,17 +38,11 @@ const DOM = {
     }
 };
 
-const createResource = (name, type, quantity, value) => {
-    return {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        name,
-        type,
-        quantity: Number(quantity),
-        value: Number(value),
-        createdAt: new Date()
-    };
-};
+// 3. LOGIC & HELPER FUNCTIONS
 
+/**
+ * Format currency to CLP
+ */
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-CL', {
         style: 'currency',
@@ -50,6 +50,9 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+/**
+ * Update Validation UI
+ */
 const setInputError = (inputKey, message) => {
     const input = DOM.inputs[inputKey];
     const errorSpan = DOM.errors[inputKey];
@@ -65,6 +68,9 @@ const setInputError = (inputKey, message) => {
     }
 };
 
+/**
+ * Validate Form Data
+ */
 const validateField = (field, value, rules) => {
     if (rules.required && !value) return rules.requiredMsg;
     if (rules.minLength && value.length < rules.minLength) return rules.minLengthMsg;
@@ -77,12 +83,13 @@ const validateForm = () => {
     const formValues = {
         name: name.value.trim(),
         type: type.value,
-        quantity: quantity.value,
-        value: value.value
+        quantity: Number(quantity.value),
+        value: Number(value.value)
     };
 
     let isValid = true;
 
+    // Validation Rules
     const errors = {
         name: validateField('name', formValues.name, {
             required: true, requiredMsg: 'El nombre es requerido',
@@ -101,6 +108,7 @@ const validateForm = () => {
         })
     };
 
+    // Apply errors to UI
     Object.keys(errors).forEach(key => {
         if (!setInputError(key, errors[key])) isValid = false;
     });
@@ -109,7 +117,11 @@ const validateForm = () => {
     return null;
 };
 
+/**
+ * Update Statistics
+ */
 const updateStats = () => {
+    // Helper to sum quantities by type
     const getCategoryTotal = (type) => appState.resources
         .filter(r => r.type === type)
         .reduce((sum, r) => sum + r.quantity, 0);
@@ -122,6 +134,7 @@ const updateStats = () => {
     const totalItems = appState.resources.reduce((sum, r) => sum + r.quantity, 0);
     const totalValue = appState.resources.reduce((sum, r) => sum + (r.value * r.quantity), 0);
 
+    // Update DOM
     if (DOM.stats.totalCount) DOM.stats.totalCount.textContent = totalItems;
     DOM.stats.hardware.textContent = hardwareCount;
     DOM.stats.software.textContent = softwareCount;
@@ -129,6 +142,8 @@ const updateStats = () => {
     DOM.stats.insumo.textContent = insumoCount;
     DOM.stats.totalValue.textContent = formatCurrency(totalValue);
 };
+
+// 4. RENDERING
 
 const renderResources = () => {
     const container = DOM.list;
@@ -147,10 +162,14 @@ const renderResources = () => {
                 </td>
             </tr>
         `;
+        updateStats();
         return;
     }
 
-    appState.resources.forEach(resource => {
+    // Sort: Newest first (by ID assuming sequential or high number)
+    const sortedResources = [...appState.resources].sort((a, b) => b.id - a.id);
+
+    sortedResources.forEach(resource => {
         const tr = document.createElement('tr');
         tr.className = 'fade-in';
 
@@ -177,32 +196,109 @@ const renderResources = () => {
     updateStats();
 };
 
-const handleAdd = (e) => {
+
+// 5. API OPERATIONS
+
+/**
+ * GET: Fetch all resources
+ */
+const fetchResources = async () => {
+    try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error('Error de conexión');
+
+        const data = await response.json();
+        appState.resources = data;
+        renderResources();
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Hubo un error al cargar los datos. Por favor revise su conexión.');
+    }
+};
+
+/**
+ * POST: Create a new resource
+ */
+const apiCreateResource = async (resourceData) => {
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resourceData)
+        });
+
+        if (!response.ok) throw new Error('Error creating resource');
+
+        // Refresh local data
+        await fetchResources();
+        return true;
+    } catch (error) {
+        console.error('Error creating resource:', error);
+        alert('Error al guardar el recurso.');
+        return false;
+    }
+};
+
+/**
+ * DELETE: Remove a resource
+ */
+const apiDeleteResource = async (id) => {
+    try {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Error deleting resource');
+
+        await fetchResources(); // Refresh
+        return true;
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+        alert('Error al eliminar el recurso.');
+        return false;
+    }
+};
+
+// 6. EVENT HANDLERS
+
+const handleAdd = async (e) => {
     e.preventDefault();
 
     const data = validateForm();
     if (!data) return;
 
-    const newResource = createResource(data.name, data.type, data.quantity, data.value);
-    appState.resources.push(newResource);
+    // UI Feedback: Loading state
+    const submitBtn = DOM.form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.textContent = 'Guardando...';
+    submitBtn.disabled = true;
 
-    renderResources();
+    const success = await apiCreateResource(data);
 
-    DOM.form.reset();
-    DOM.inputs.name.focus();
-};
+    // Reset UI
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
 
-const handleDelete = (id) => {
-    if (confirm('¿Está seguro de eliminar este recurso?')) {
-        appState.resources = appState.resources.filter(r => r.id !== id);
-        renderResources();
+    if (success) {
+        DOM.form.reset();
+        DOM.inputs.name.focus();
     }
 };
 
+const handleDelete = async (id) => {
+    if (confirm('¿Confirma que desea eliminar este recurso permanentemente?')) {
+        await apiDeleteResource(id);
+    }
+};
+
+// 7. INITIALIZATION
+
 const init = () => {
+    console.log('App Initializing...');
     DOM.form.addEventListener('submit', handleAdd);
-    renderResources();
-    console.log('App Initialized: Module 4 Ready');
+
+    // Initial Fetch
+    fetchResources();
 };
 
 document.addEventListener('DOMContentLoaded', init);
