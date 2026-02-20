@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
-  base: '/DashboardGestionRecursos/', // Ruta base para correcto funcionamiento en GitHub Pages
+  base: '/DashboardGestionRecursos/', // GitHub Pages
 })
