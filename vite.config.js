@@ -4,4 +4,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   base: '/DashboardGestionRecursos/', // GitHub Pages
+  test: {
+    environment: 'jsdom'
+  }
 })

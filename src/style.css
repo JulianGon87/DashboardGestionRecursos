@@ -42,6 +42,10 @@ body {
     height: 100vh;
 }
 
+.app-container.no-sidebar {
+    grid-template-columns: 1fr;
+}
+
 .sidebar {
     background: rgba(15, 16, 22, 0.8);
     border-right: 1px solid var(--glass-border);

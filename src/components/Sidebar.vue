@@ -39,18 +39,38 @@
         </router-link>
     </nav>
 
-    <div class="user-profile">
-        <div class="avatar">A</div>
-        <div class="user-info">
-            <span class="user-name">Administrador</span>
-            <span class="user-role">Portafolio</span>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 15px;" v-if="currentUser">
+        <div class="welcome-box" style="padding: 15px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%); border-radius: 12px; border-left: 3px solid #3498db;">
+            <h3 style="font-size: 1rem; color: #fff; margin-bottom: 5px;">¡Bienvenido, {{ currentUser.name }}!</h3>
+            <p style="font-size: 0.85rem; color: #ccc; margin: 0;">Has visitado este Dashboard <strong style="color: #3498db;">{{ currentUser.visits }}</strong> veces.</p>
+        </div>
+
+        <div class="user-profile" style="margin-top: 0;">
+            <div class="avatar">{{ currentUser.name.charAt(0).toUpperCase() }}</div>
+            <div class="user-info">
+                <span class="user-name">{{ currentUser.name }}</span>
+                <span class="user-role">{{ currentUser.email }}</span>
+            </div>
+            <button @click="logout" class="btn btn-outline" style="margin-top: 10px; width: 100%; border-color: #ff4757; color: #ff4757;">Salir</button>
         </div>
     </div>
   </aside>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
+
+const store = useStore()
+const router = useRouter()
+
+const currentUser = computed(() => store.getters.currentUser)
+
+const logout = () => {
+    store.dispatch('logout')
+    router.push('/login')
+}
 </script>
 
-<style scoped>
-</style>
+ 

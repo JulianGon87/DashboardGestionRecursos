@@ -157,6 +157,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
+
+const store = useStore()
+const currentUser = computed(() => store.getters.currentUser)
 
 const API_URL = 'https://6993a28cfade7a9ec0f3214f.mockapi.io/DGRv1/recursos'
 
@@ -307,6 +311,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-
-</style>
+ 
