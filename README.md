@@ -42,4 +42,4 @@ npm run test:unit
 ```
 
 ---
-Desarrollado para el portafolio del Módulo 6 y Módulo 7 - SENCE Frontend.
+
